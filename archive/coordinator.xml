@@ -1,0 +1,43 @@
+<coordinator-app name="${coordinator_name}"
+  frequency="${freq}"
+  start="${start}" end="${end}" timezone="${bst_timezone}"
+  xmlns="uri:oozie:coordinator:0.2">
+        <controls>
+                <concurrency>4</concurrency>
+        </controls>
+        <action>
+                <workflow>
+                        <app-path>${wf_application_path}</app-path>
+                        <configuration>
+                                <property>
+                                        <name>PERIOD_YEAR</name>
+                                        <value>${coord:formatTime(coord:nominalTime(), 'yyyy')}</value>
+                                </property>
+                                <property>
+                                        <name>PERIOD_DATE</name>
+                                        <value>${coord:formatTime(coord:nominalTime(), 'yyyy-MM-dd')}</value>
+                                </property>
+                                 <property>
+                                        <name>PERIOD_TIME</name>
+                                        <value>${coord:formatTime(coord:nominalTime(), 'yyyy-MM-dd HH:mm')}</value>
+                                </property>
+                                <property>
+                                        <name>PERIOD_MONTH</name>
+                                        <value>${coord:formatTime(coord:nominalTime(), 'MM')}</value>
+                                </property>
+                                <property>
+                                        <name>DAY</name>
+                                        <value>${coord:formatTime(coord:nominalTime(), 'dd')}</value>
+                                </property>
+                                <property>
+                                        <name>HOUR</name>
+                                        <value>${coord:formatTime(coord:nominalTime(), 'HH')}</value>
+                                </property>
+                                <property>
+                                        <name>MIN</name>
+                                        <value>${coord:formatTime(coord:nominalTime(), 'mm')}</value>
+                                </property>
+                        </configuration>
+           </workflow>
+        </action>
+</coordinator-app>

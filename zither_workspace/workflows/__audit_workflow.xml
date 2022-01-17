@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workflow-app name="Zither_RG_Monitoring_application_audit_check"
+              xmlns="uri:oozie:workflow:0.5">
+    <global>
+        <configuration>
+            <property>
+                <name>mapred.job.queue.name</name>
+                <value>${queuename}</value>
+            </property>
+        </configuration>
+    </global>
+    <start to="RG_Monitoring_Application_spark"/>
+    <action name="RG_Monitoring_Application_spark">
+        <shell xmlns="uri:oozie:shell-action:0.1">
+            <job-tracker>${jobtracker}</job-tracker>
+            <name-node>${namenode}</name-node>
+             <configuration>
+                <property>
+                    <name>mapred.job.queue.name</name>
+                    <value>${queuename}</value>
+                </property>
+            </configuration>
+            <exec>${sh_file_path}</exec>
+            <argument>${queuename}</argument>
+            <argument>${feeds_config}</argument>
+            <argument>${feed_name}</argument>
+            <argument>${jceks_file}</argument>
+            <argument>${cluster_id}</argument>
+            <argument>${job_type}</argument>
+            <argument>${keytab_file}</argument>
+            <argument>${hdfs_property_file}</argument>
+            <env-var>HADOOP_USER_NAME=${wf:user()}</env-var>
+            <file>${sh_file_path}#${sh_file_name}</file>
+            <capture-output></capture-output>
+        </shell>
+        <ok to="Audit_shell"/>
+        <error to="Audit_shell"/>
+    </action>
+	
+		 <action name="Audit_shell">
+        <shell xmlns="uri:oozie:shell-action:0.1">
+            <job-tracker>${jobtracker}</job-tracker>
+            <name-node>${namenode}</name-node>
+             <configuration>
+                <property>
+                    <name>mapred.job.queue.name</name>
+                    <value>${queuename}</value>
+                </property>
+            </configuration>
+            <exec>${audit_file_path}</exec>
+            <argument>${wf:id()}</argument>
+            <argument>${workflow_name}</argument>
+            <argument>${PERIOD_TIME}</argument>
+            <argument>${wf:errorMessage(wf:lastErrorNode())}</argument>
+            <env-var>HADOOP_USER_NAME=${wf:user()}</env-var>
+            <file>${audit_file_path}#${audit_file_name}</file>
+            <capture-output></capture-output>
+        </shell>
+        <ok to="EMAIL_SUCCESS"/>
+        <error to="EMAIL_FAILURE"/>
+    </action>
+   	   <action name="EMAIL_SUCCESS">
+        <email xmlns="uri:oozie:email-action:0.1">
+            <to>${success_emails}</to>
+            <subject>SUCCESS: ${wf:name()} : ${wf:id()}</subject>
+            <body>
+				Hi,
+
+				The Zither job with  with ${wf:id()} : ${wf:name()} completed successfully !
+
+				This is an auto-generated email.
+				Please do not reply to this email.
+
+				Thanks,
+				DSS
+				Big Data Team.
+			</body>
+        </email>
+        <ok to="end"/>
+        <error to="kill"/>
+    </action>
+    <action name="EMAIL_FAILURE">
+        <email xmlns="uri:oozie:email-action:0.1">
+            <to>${failure_emails}</to>
+            <subject>FAILURE: ${wf:name()} : ${wf:id()}</subject>
+            <body>
+				Hi,
+
+				The Zither job with ${wf:id()} : ${wf:name()} failed !!!
+				Please check job-tracker logs for more detail.
+
+				This is an auto-generated email.
+				Please do not reply to this email.
+
+				Thanks,
+				DSS
+				Big Data Team.
+			</body>
+        </email>
+        <ok to="kill"/>
+        <error to="kill"/>
+    </action>
+    <kill name="kill">
+        <message>Action failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name="end"/>
+</workflow-app>
