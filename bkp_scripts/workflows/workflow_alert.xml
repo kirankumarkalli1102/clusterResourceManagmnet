@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workflow-app name="${workflow_name}"
+              xmlns="uri:oozie:workflow:0.5">
+     <global>
+        <configuration>
+            <property>
+                <name>mapred.job.queue.name</name>
+                <value>${queuename}</value>
+            </property>
+        </configuration>
+    </global>
+    <start to="RG_Monitoring_Application_spark"/>
+    <action name="RG_Monitoring_Application_spark">
+        <shell xmlns="uri:oozie:shell-action:0.1">
+            <job-tracker>${jobtracker}</job-tracker>
+            <name-node>${namenode}</name-node>
+             <configuration>
+                <property>
+                    <name>mapred.job.queue.name</name>
+                    <value>${queuename}</value>
+                </property>
+            </configuration>
+            <exec>${sh_file_path}</exec>
+            <argument>${queuename}</argument>
+            <argument>${config_file}</argument>
+            <argument>${alert_type}</argument>
+            <argument>${hdfs_properties_file}</argument>
+            <argument>${keytab_file}</argument>
+            <argument>${job_type}</argument>
+            <argument>${control_file_path}</argument>
+            <env-var>HADOOP_USER_NAME=${wf:user()}</env-var>
+            <file>${sh_file_path}#${sh_file_name}</file>
+            <capture-output></capture-output>
+        </shell>
+        <ok to="shellAction"/>
+        <error to="Audit_shell"/>
+    </action>
+<action name="shellAction">
+        <shell xmlns="uri:oozie:shell-action:0.1">
+                <job-tracker>${jobtracker}</job-tracker>
+            <name-node>${namenode}</name-node>
+             <configuration>
+                <property>
+                    <name>mapred.job.queue.name</name>
+                    <value>${queuename}</value>
+                </property>
+            </configuration>
+            <exec>${attachment_sh_file_name}</exec>
+                <argument>${attachment_path}</argument>
+                <env-var>HADOOP_USER_NAME=${wf:user()}</env-var>
+                <file>${attachment_sh_file_path}#${attachment_sh_file_name}</file>
+                <capture-output></capture-output>
+        </shell>
+        <ok to="Audit_shell" />
+        <error to="Audit_shell" />
+    </action>
+
+ <action name="Audit_shell">
+        <shell xmlns="uri:oozie:shell-action:0.1">
+            <job-tracker>${jobtracker}</job-tracker>
+            <name-node>${namenode}</name-node>
+             <configuration>
+                <property>
+                    <name>mapred.job.queue.name</name>
+                    <value>${queuename}</value>
+                </property>
+            </configuration>
+            <exec>${audit_file_path}</exec>
+            <argument>${wf:id()}</argument>
+            <argument>${workflow_name}</argument>
+            <argument>${PERIOD_TIME}</argument>
+            <argument>${wf:errorMessage(wf:lastErrorNode())}</argument>
+            <argument>${control_file_path}</argument>
+            <argument>${audit_log_path}</argument>
+            <env-var>HADOOP_USER_NAME=${wf:user()}</env-var>
+            <file>${audit_file_path}#${audit_file_name}</file>
+            <capture-output></capture-output>
+        </shell>
+        <ok to="NO_FILES_DECISION" />
+        <error to="NO_FILES_DECISION" />
+    </action>
+
+<decision name="NO_FILES_DECISION">
+        <switch>
+            <case to="EMAIL_SUCCESS_NO_FILE">
+              ${wf:actionData('shellAction')['isNull'] == 'true'}
+            </case>
+            <case to="EMAIL_SUCCESS">
+              ${wf:actionData('shellAction')['isNull'] == 'false'}
+            </case>
+            <case to="EMAIL_FAILURE">
+               ${wf:actionData('Audit_shell')['status'] == 'failure' }
+            </case>
+            <default to="EMAIL_FAILURE"/>
+        </switch>
+    </decision>
+
+           <action name="EMAIL_SUCCESS">
+        <email xmlns="uri:oozie:email-action:0.2">
+            <to>${success_emails}</to>
+            <subject>SUCCESS: ${wf:name()} : ${wf:id()}</subject>
+            <body>
+                                Hi,
+
+                                The Zither job with  with ${wf:id()} : ${wf:name()} completed successfully !
+
+                                This is an auto-generated email.
+                                Please do not reply to this email.
+
+                                Thanks,
+                                DSS
+                                Big Data Team.
+                        </body>
+                                                <attachment>${wf:actionData('shellAction')['filepath']}</attachment>
+        </email>
+        <ok to="hdfscommands"/>
+        <error to="EMAIL_FAILURE"/>
+    </action>
+
+        <action name="EMAIL_SUCCESS_NO_FILE">
+        <email xmlns="uri:oozie:email-action:0.2">
+            <to>${success_emails}</to>
+            <subject>SUCCESS: ${wf:name()} : ${wf:id()}</subject>
+            <body>
+                                Hi,
+
+                                The Zither job with  with ${wf:id()} : ${wf:name()} completed successfully ! But there are no files to attach since no alert is present
+
+                                This is an auto-generated email.
+                                Please do not reply to this email.
+
+                                Thanks,
+                                DSS
+                                Big Data Team.
+                        </body>
+        </email>
+        <ok to="end"/>
+        <error to="EMAIL_FAILURE"/>
+    </action>
+
+        <action name="hdfscommands">
+         <fs>
+            <move source='${attachment_path}*.csv' target='${archival_path}'/>
+        </fs>
+        <ok to="end"/>
+        <error to="EMAIL_FAILURE"/>
+    </action>
+    <action name="EMAIL_FAILURE">
+        <email xmlns="uri:oozie:email-action:0.2">
+            <to>${failure_emails}</to>
+            <subject>FAILURE: ${wf:name()} : ${wf:id()}</subject>
+            <body>
+                                Hi,
+
+                                The Zither job with ${wf:id()} : ${wf:name()} failed !!!
+                                Please check job-tracker logs for more detail.
+
+                                This is an auto-generated email.
+                                Please do not reply to this email.
+
+                                Thanks,
+                                DSS
+                                Big Data Team.
+                        </body>
+        </email>
+        <ok to="kill"/>
+        <error to="kill"/>
+    </action>
+    <kill name="kill">
+        <message>Action failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name="end"/>
+        </workflow-app>
+

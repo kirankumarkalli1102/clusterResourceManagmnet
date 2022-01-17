@@ -1,0 +1,12 @@
+ALTER TABLE en_cluster_usage_details DROP PARTITION (cluster_id<>'');
+ALTER TABLE en_cm_container_wise_usage_details DROP PARTITION (cluster_id<>'');
+ALTER TABLE en_filesystem_img_data DROP PARTITION (cluster_id<>'');
+ALTER TABLE en_impala_execution_details DROP PARTITION (cluster_id<>'');
+ALTER TABLE en_yarn_applications_all DROP PARTITION (cluster_id<>'');
+ALTER TABLE en_yarn_job_history DROP PARTITION (cluster_id<>'');
+ALTER TABLE raw_cluster_usage_details DROP PARTITION (cluster_id<>'');
+ALTER TABLE raw_cm_container_wise_usage_details DROP PARTITION (cluster_id<>'');
+ALTER TABLE raw_filesystem_img_data DROP PARTITION (cluster_id<>'');
+ALTER TABLE raw_impala_execution_details DROP PARTITION (cluster_id<>'');
+ALTER TABLE raw_yarn_applications_all DROP PARTITION (cluster_id<>'');
+ALTER TABLE raw_yarn_job_history DROP PARTITION (cluster_id<>'');
